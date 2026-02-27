@@ -26,7 +26,7 @@ PARQUET_OUTPUT_PATH = PROCESSED_DATA_PATH / "f1_data.parquet"
 RAW_DATA_PATH.mkdir(parents=True, exist_ok=True)
 PROCESSED_DATA_PATH.mkdir(parents=True, exist_ok=True)
 
-print(f"✓ Configuration loaded successfully")
+print(f"[OK] Configuration loaded successfully")
 print(f"  Project: {GCP_PROJECT_ID}")
 print(f"  Dataset: {GCP_DATASET_ID}")
 print(f"  Raw data path: {RAW_DATA_PATH}")

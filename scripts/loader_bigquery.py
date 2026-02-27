@@ -7,6 +7,9 @@ from google.oauth2 import service_account
 import polars as pl
 from pathlib import Path
 from typing import Dict, Optional
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from config.config import GCP_PROJECT_ID, GCP_DATASET_ID, GCP_CREDENTIALS_PATH
 
 
