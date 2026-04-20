@@ -35,6 +35,12 @@ class ParquetLoader:
         Returns:
             Path to saved Parquet file
         """
+        if df is None or not isinstance(df, pl.DataFrame):
+            raise ValueError(f"Invalid dataframe for filename '{filename}'")
+
+        if not filename:
+            raise ValueError("Filename cannot be empty")
+
         if not filename.endswith('.parquet'):
             filename = f"{filename}.parquet"
         
@@ -66,8 +72,14 @@ class ParquetLoader:
         saved_files = {}
         
         for name, df in dataframes.items():
-            output_path = self.save_parquet(df, name)
-            saved_files[name] = output_path
+            try:
+                output_path = self.save_parquet(df, name)
+                saved_files[name] = output_path
+            except Exception as e:
+                print(f"✗ Skipping {name}: {str(e)}\n")
+
+        if not saved_files:
+            raise RuntimeError("No parquet files were saved successfully")
         
         return saved_files
     
@@ -81,11 +93,17 @@ class ParquetLoader:
         Returns:
             Polars DataFrame
         """
+        if not filename:
+            raise ValueError("Filename cannot be empty")
+
         if not filename.endswith('.parquet'):
             filename = f"{filename}.parquet"
         
         parquet_path = self.output_directory / filename
         
+        if not parquet_path.exists():
+            raise FileNotFoundError(f"Parquet file not found: {parquet_path}")
+
         try:
             df = pl.read_parquet(parquet_path)
             print(f"✓ Loaded: {filename}")
