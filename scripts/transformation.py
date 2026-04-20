@@ -31,23 +31,27 @@ class F1DataTransformer:
             DataFrame with missing values handled
         """
         print(f"  - Inspecting missing values...")
-        
-        # Check for null values
-        null_counts = df.null_count()
-        
-        # Fill numeric columns with 0
-        numeric_cols = df.select(pl.col(pl.Int64, pl.Float64)).columns
-        for col in numeric_cols:
-            if null_counts[col][0] > 0:
-                df = df.with_columns(pl.col(col).fill_null(0))
-        
-        # Fill text columns with 'Unknown'
-        string_cols = df.select(pl.col(pl.Utf8)).columns
-        for col in string_cols:
-            if null_counts[col][0] > 0:
-                df = df.with_columns(pl.col(col).fill_null("Unknown"))
-        
-        return df
+
+        try:
+            # Check for null values
+            null_counts = df.null_count()
+
+            # Fill numeric columns with 0
+            numeric_cols = df.select(pl.col(pl.NUMERIC_DTYPES)).columns
+            for col in numeric_cols:
+                if null_counts[col][0] > 0:
+                    df = df.with_columns(pl.col(col).fill_null(0))
+
+            # Fill text columns with 'Unknown'
+            string_cols = df.select(pl.col(pl.String)).columns
+            for col in string_cols:
+                if null_counts[col][0] > 0:
+                    df = df.with_columns(pl.col(col).fill_null("Unknown"))
+
+            return df
+        except Exception as e:
+            print(f"  ✗ Error while handling missing values: {str(e)}")
+            raise
     
     def standardize_column_names(self, df: pl.DataFrame) -> pl.DataFrame:
         """
@@ -59,8 +63,12 @@ class F1DataTransformer:
         Returns:
             DataFrame with standardized column names
         """
-        new_columns = [col.lower().replace(" ", "_") for col in df.columns]
-        return df.rename(dict(zip(df.columns, new_columns)))
+        try:
+            new_columns = [col.lower().strip().replace(" ", "_") for col in df.columns]
+            return df.rename(dict(zip(df.columns, new_columns)))
+        except Exception as e:
+            print(f"  ✗ Error while standardizing column names: {str(e)}")
+            raise
     
     def transform_dataset(self, df: pl.DataFrame) -> pl.DataFrame:
         """
@@ -72,20 +80,24 @@ class F1DataTransformer:
         Returns:
             Transformed DataFrame
         """
-        # Standardize column names
-        df = self.standardize_column_names(df)
-        
-        # Handle missing values
-        df = self.handle_missing_values(df)
-        
-        # Remove duplicates
-        initial_rows = df.shape[0]
-        df = df.unique()
-        removed_rows = initial_rows - df.shape[0]
-        if removed_rows > 0:
-            print(f"  - Removed {removed_rows} duplicate rows")
-        
-        return df
+        try:
+            # Standardize column names
+            df = self.standardize_column_names(df)
+
+            # Handle missing values
+            df = self.handle_missing_values(df)
+
+            # Remove duplicates
+            initial_rows = df.shape[0]
+            df = df.unique()
+            removed_rows = initial_rows - df.shape[0]
+            if removed_rows > 0:
+                print(f"  - Removed {removed_rows} duplicate rows")
+
+            return df
+        except Exception as e:
+            print(f"  ✗ Dataset transformation failed: {str(e)}")
+            raise
     
     def transform_all(self) -> Dict[str, pl.DataFrame]:
         """
@@ -98,9 +110,15 @@ class F1DataTransformer:
         
         for name, df in self.dataframes.items():
             print(f"Processing: {name}")
-            self.transformed_data[name] = self.transform_dataset(df)
-            print(f"  ✓ Shape: {self.transformed_data[name].shape}\n")
+            try:
+                self.transformed_data[name] = self.transform_dataset(df)
+                print(f"  ✓ Shape: {self.transformed_data[name].shape}\n")
+            except Exception as e:
+                print(f"  ✗ Skipping dataset '{name}' due to error: {str(e)}\n")
         
+        if not self.transformed_data:
+            raise RuntimeError("No datasets were transformed successfully")
+
         return self.transformed_data
 
 
@@ -116,13 +134,22 @@ def display_transformation_summary(original: Dict, transformed: Dict) -> None:
     print("📈 TRANSFORMATION SUMMARY")
     print("="*60 + "\n")
     
+    if not original:
+        print("No original datasets were provided.\n")
+        return
+
     for name in original.keys():
         if name in transformed:
-            orig_shape = original[name].shape
-            trans_shape = transformed[name].shape
-            print(f"{name}:")
-            print(f"  Original: {orig_shape[0]} rows × {orig_shape[1]} columns")
-            print(f"  Transformed: {trans_shape[0]} rows × {trans_shape[1]} columns\n")
+            try:
+                orig_shape = original[name].shape
+                trans_shape = transformed[name].shape
+                print(f"{name}:")
+                print(f"  Original: {orig_shape[0]} rows × {orig_shape[1]} columns")
+                print(f"  Transformed: {trans_shape[0]} rows × {trans_shape[1]} columns\n")
+            except Exception as e:
+                print(f"{name}: [ERROR] Unable to compute summary ({str(e)})\n")
+        else:
+            print(f"{name}: [WARNING] No transformed output generated\n")
 
 
 if __name__ == "__main__":
