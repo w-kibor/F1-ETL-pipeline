@@ -69,7 +69,7 @@ class BigQueryLoader:
         Returns:
             True if successful, False otherwise
         """
-        if not self.is_authenticated:
+        if not self.is_authenticated or self.client is None:
             print("✗ Not authenticated. Call authenticate() first.")
             return False
         
@@ -99,12 +99,32 @@ class BigQueryLoader:
         Returns:
             True if successful, False otherwise
         """
-        if not self.is_authenticated:
+        if not self.is_authenticated or self.client is None:
             print("✗ Not authenticated. Call authenticate() first.")
+            return False
+
+        if df is None or not isinstance(df, pl.DataFrame):
+            print(f"✗ Invalid dataframe provided for table '{table_id}'")
+            return False
+
+        if not table_id:
+            print("✗ table_id cannot be empty")
+            return False
+
+        valid_write_dispositions = {"WRITE_TRUNCATE", "WRITE_APPEND", "WRITE_EMPTY"}
+        if write_disposition not in valid_write_dispositions:
+            print(
+                f"✗ Invalid write_disposition '{write_disposition}'. "
+                f"Expected one of {sorted(valid_write_dispositions)}"
+            )
             return False
         
         try:
             # Convert Polars DataFrame to pandas for BigQuery
+            if df.is_empty():
+                print(f"⚠️  Skipping {table_id}: dataframe is empty")
+                return True
+
             pandas_df = df.to_pandas()
             
             full_table_id = f"{self.project_id}.{self.dataset_id}.{table_id}"
@@ -142,8 +162,12 @@ class BigQueryLoader:
         Returns:
             Dictionary indicating success/failure for each table
         """
-        if not self.is_authenticated:
+        if not self.is_authenticated or self.client is None:
             print("✗ Not authenticated. Call authenticate() first.")
+            return {}
+
+        if not dataframes:
+            print("✗ No dataframes provided for BigQuery load.")
             return {}
         
         print("\n📤 Loading data to BigQuery...\n")
@@ -151,8 +175,12 @@ class BigQueryLoader:
         results = {}
         
         for name, df in dataframes.items():
-            success = self.load_dataframe_to_bigquery(df, name)
-            results[name] = success
+            try:
+                success = self.load_dataframe_to_bigquery(df, name)
+                results[name] = success
+            except Exception as e:
+                print(f"✗ Unexpected error loading table '{name}': {str(e)}")
+                results[name] = False
         
         return results
 
@@ -167,6 +195,10 @@ def display_bigquery_summary(results: Dict[str, bool]) -> None:
     print("\n" + "="*60)
     print("☁️  BIGQUERY LOAD SUMMARY")
     print("="*60 + "\n")
+
+    if not results:
+        print("No BigQuery load results to display.\n")
+        return
     
     successful = sum(1 for v in results.values() if v)
     failed = len(results) - successful
