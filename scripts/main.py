@@ -32,42 +32,60 @@ def run_etl_pipeline(use_bigquery: bool = False) -> bool:
         # STEP 2: EXTRACTION
         print("📊 STEP 2: DATA EXTRACTION")
         print("-" * 60)
-        datasets = load_csv_files()
+        try:
+            datasets = load_csv_files()
+        except Exception as e:
+            print(f"✗ Extraction stage failed: {str(e)}")
+            return False
         
         if not datasets:
             print("⚠️  No datasets found. Please add CSV files to data/raw/")
             return False
         
-        display_dataframe_info(datasets)
+        try:
+            display_dataframe_info(datasets)
+        except Exception as e:
+            print(f"⚠️  Failed to display extraction summary: {str(e)}")
         
         # STEP 3: TRANSFORMATION
         print("\n🔄 STEP 3: DATA TRANSFORMATION")
         print("-" * 60)
-        transformer = F1DataTransformer(datasets)
-        transformed_datasets = transformer.transform_all()
-        display_transformation_summary(datasets, transformed_datasets)
+        try:
+            transformer = F1DataTransformer(datasets)
+            transformed_datasets = transformer.transform_all()
+            display_transformation_summary(datasets, transformed_datasets)
+        except Exception as e:
+            print(f"✗ Transformation stage failed: {str(e)}")
+            return False
         
         # STEP 4: LOAD TO PARQUET
         print("\n💾 STEP 4: LOAD TO PARQUET")
         print("-" * 60)
-        parquet_loader = ParquetLoader()
-        saved_files = parquet_loader.save_all_parquet(transformed_datasets)
-        display_parquet_summary(saved_files)
+        try:
+            parquet_loader = ParquetLoader()
+            saved_files = parquet_loader.save_all_parquet(transformed_datasets)
+            display_parquet_summary(saved_files)
+        except Exception as e:
+            print(f"✗ Parquet stage failed: {str(e)}")
+            return False
         
         # STEP 5: LOAD TO BIGQUERY (Optional)
         if use_bigquery:
             print("\n☁️  STEP 5: LOAD TO BIGQUERY")
             print("-" * 60)
-            bigquery_loader = BigQueryLoader()
-            
-            if bigquery_loader.authenticate():
-                if bigquery_loader.create_dataset():
-                    results = bigquery_loader.load_all_to_bigquery(transformed_datasets)
-                    display_bigquery_summary(results)
+            try:
+                bigquery_loader = BigQueryLoader()
+
+                if bigquery_loader.authenticate():
+                    if bigquery_loader.create_dataset():
+                        results = bigquery_loader.load_all_to_bigquery(transformed_datasets)
+                        display_bigquery_summary(results)
+                    else:
+                        print("⚠️  Could not create BigQuery dataset. Skipping BigQuery load.")
                 else:
-                    print("⚠️  Could not create BigQuery dataset. Skipping BigQuery load.")
-            else:
-                print("⚠️  BigQuery authentication failed. Skipping BigQuery load.")
+                    print("⚠️  BigQuery authentication failed. Skipping BigQuery load.")
+            except Exception as e:
+                print(f"⚠️  BigQuery stage encountered an error and was skipped: {str(e)}")
         else:
             print("\n⏭️  STEP 5: BIGQUERY LOAD - SKIPPED")
             print("(Use use_bigquery=True to enable)\n")
