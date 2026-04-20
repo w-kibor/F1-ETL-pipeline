@@ -5,7 +5,6 @@ Extracts Formula 1 data from CSV files using Polars
 import polars as pl
 from pathlib import Path
 import sys
-from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.config import RAW_DATA_PATH
@@ -22,12 +21,22 @@ def load_csv_files(directory: Path = RAW_DATA_PATH) -> dict:
         Dictionary with dataframe names as keys and Polars DataFrames as values
     """
     dataframes = {}
+
+    try:
+        directory = Path(directory)
+    except Exception as e:
+        print(f"[ERROR] Invalid directory path '{directory}': {str(e)}")
+        return dataframes
     
     if not directory.exists():
         print(f"Warning: Directory {directory} does not exist")
         return dataframes
     
-    csv_files = list(directory.glob("*.csv"))
+    try:
+        csv_files = list(directory.glob("*.csv"))
+    except Exception as e:
+        print(f"[ERROR] Unable to list CSV files in {directory}: {str(e)}")
+        return dataframes
     
     if not csv_files:
         print(f"No CSV files found in {directory}")
@@ -61,7 +70,10 @@ def load_csv_files(directory: Path = RAW_DATA_PATH) -> dict:
                 print(f"[OK] Loaded: {csv_file.name} (with latin-1 encoding)")
                 print(f"  Shape: {df.shape[0]} rows x {df.shape[1]} columns\n")
             except Exception as e2:
-                print(f"[ERROR] Error loading {csv_file.name}: {str(e)}\n")
+                print(
+                    f"[ERROR] Error loading {csv_file.name}: "
+                    f"utf-8-sig -> {str(e)} | latin-1 -> {str(e2)}\n"
+                )
     
     return dataframes
 
@@ -76,12 +88,19 @@ def display_dataframe_info(dataframes: dict) -> None:
     print("\n" + "="*60)
     print("[INFO] DATAFRAME SUMMARY")
     print("="*60 + "\n")
+
+    if not dataframes:
+        print("[INFO] No dataframes available to display.\n")
+        return
     
     for name, df in dataframes.items():
-        print(f"Dataset: {name}")
-        print(f"  Shape: {df.shape}")
-        print(f"  Columns: {', '.join(df.columns)}")
-        print(f"  Data Types: {dict(zip(df.columns, df.dtypes))}\n")
+        try:
+            print(f"Dataset: {name}")
+            print(f"  Shape: {df.shape}")
+            print(f"  Columns: {', '.join(df.columns)}")
+            print(f"  Data Types: {dict(zip(df.columns, df.dtypes))}\n")
+        except Exception as e:
+            print(f"[ERROR] Failed to display info for dataset '{name}': {str(e)}\n")
 
 
 if __name__ == "__main__":
