@@ -3,7 +3,9 @@
  * Handles all communication with the FastAPI backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  (import.meta as ImportMeta & { env: { VITE_API_URL?: string } }).env
+    .VITE_API_URL || "http://localhost:8000";
 
 interface PipelineStatus {
   status: string;
