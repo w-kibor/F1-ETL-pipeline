@@ -4,7 +4,7 @@ A comprehensive ETL (Extract, Transform, Load) pipeline for Formula 1 Championsh
 
 ## Project Overview
 
-This project includes both a Python ETL pipeline and a React frontend with FastAPI backend:
+This project includes both a Python ETL pipeline and a React frontend with a FastAPI backend:
 
 **Backend Architecture:**
 1. **FastAPI Server** - REST API for ETL operations
@@ -13,7 +13,7 @@ This project includes both a Python ETL pipeline and a React frontend with FastA
 4. **Load to Parquet** - Export processed data to Parquet format
 5. **Load to BigQuery** - Load final data to Google BigQuery (optional)
 
-**Frontend:** React + TypeScript with Vite, displaying F1 race data and analytics
+**Frontend:** React + TypeScript with Vite, featuring race results, prediction cards, standings, and an interactive betting panel UI
 
 ## Project Structure
 
@@ -31,7 +31,7 @@ ETL Pipeline for F1/
 │   │   └── main.tsx
 │   ├── package.json
 │   ├── vite.config.ts
-│   └── .env.example
+│   └── README.md
 ├── data/
 │   ├── raw/                   # Raw CSV files
 │   └── processed/             # Processed Parquet files
@@ -44,7 +44,8 @@ ETL Pipeline for F1/
 ├── config/
 │   └── config.py              # Configuration
 ├── requirements.txt           # Python dependencies
-├── .env.example               # Environment template
+├── start-dev.sh               # Linux/Mac dev startup (backend + frontend)
+├── start-dev.bat              # Windows dev startup (backend + frontend)
 └── README.md                  # This file
 ```
 
@@ -69,8 +70,8 @@ pip install -r requirements.txt
 ```
 
 #### 3. Configure Environment
-- Copy `.env.example` to `.env`
-- Update with your BigQuery credentials if using BigQuery
+- Create a `.env` file in the project root (if needed)
+- Add your BigQuery credentials/config values if using BigQuery
 
 #### 4. Prepare Data
 - Download F1 data CSV files and place in `data/raw/`
@@ -100,12 +101,7 @@ pnpm install
 ```
 
 #### 3. Configure Environment
-```bash
-# Create .env file from template
-cp .env.example .env
-```
-
-Update `.env` with backend URL:
+Create `frontend/.env` and set the backend URL:
 ```env
 VITE_API_URL=http://localhost:8000
 ```
@@ -126,6 +122,14 @@ npm run build
 pnpm build
 ```
 
+### Frontend Features
+
+- **Race Results panel** with latest race summary and top finishers
+- **Prediction Model cards** with driver win probabilities and trend indicators
+- **Standings table** showing positions, points, wins, and podium counts
+- **Betting panel UI** to place local prediction picks and track recent bets
+- **Backend API integration** via `frontend/src/services/etlApi.ts` for ETL and data endpoints
+
 ## Running the Application
 
 ### Quick Start (Development)
@@ -143,6 +147,20 @@ python backend/main.py
 cd frontend
 npm run dev
 # Frontend available at http://localhost:5173
+```
+
+### One-command Startup
+
+From the project root, you can start both services together:
+
+```bash
+# Linux/Mac
+./start-dev.sh
+```
+
+```bat
+:: Windows
+start-dev.bat
 ```
 
 ### Running ETL Pipeline
@@ -177,8 +195,6 @@ For complete API documentation, see [API_DOCUMENTATION.md](backend/API_DOCUMENTA
 - `GET /data/datasets` - Get datasets summary
 - `GET /data/preview/{dataset_name}` - Preview dataset
 - `GET /pipeline/status` - Get pipeline status
-
-### Step Details
 
 ### Step Details
 
@@ -246,6 +262,11 @@ For complete API documentation, see [API_DOCUMENTATION.md](backend/API_DOCUMENTA
 **"npm: command not found"**
 - Install Node.js from https://nodejs.org/
 - Or use pnpm: `npm install -g pnpm`
+
+**"vite: Permission denied"**
+- Fix executable permissions and retry:
+  `chmod +x frontend/node_modules/.bin/vite`
+  `chmod +x frontend/node_modules/vite/bin/vite.js`
 
 ## API Documentation
 
